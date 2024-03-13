@@ -110,3 +110,35 @@ def messages_prompt(
     content = response.json()["choices"][0]["message"]["content"]
 
     return content
+
+
+def summarize(text, max_tokens=default_token_sequence_length):
+    """
+    Generates a summary of the key theme of the text.
+    """
+    URL = f"https://{OPENAI_INSTANCE}.openai.azure.com/openai/deployments/{
+        LLM_DEPLOYMENT}/chat/completions?api-version={LLM_API_VERSION}"
+
+    headers = {"Content-Type": "application/json", "api-key": OPENAI_API_KEY}
+
+    body = {
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Summarize the following text into a well-formatted list of bullets that capture the key information as per the user's query."
+            },
+            {"role": "user", "content": text},
+        ],
+        "temperature": 0,
+        "frequency_penalty": 1,
+        "presence_penalty": 0,
+        "max_tokens": round(max_tokens),
+        "stop": None,
+    }
+
+    response = requests.post(URL, headers=headers, json=body, timeout=60)
+    # print(response.json())
+
+    content = response.json()["choices"][0]["message"]["content"]
+
+    return content

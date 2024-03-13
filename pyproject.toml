@@ -16,6 +16,9 @@ azure-keyvault-secrets = "^4.8.0"
 azure-identity = "^1.15.0"
 tiktoken = "^0.6.0"
 requests = "^2.31.0"
+markdownify = "^0.11.6"
+glom = "^23.5.0"
+beautifulsoup4 = "^4.12.3"
 
 [tool.poetry.group.dev.dependencies]
 numpy = "^1.26.4"

@@ -1,0 +1,9 @@
+{
+    "cache_history_ttl_seconds": 28800,
+    "openai_api_version": "2023-12-01-preview",
+    "openai_api_deployment": "VERX-GPT35-TURBO-ET",
+    "search_api_version": "2023-11-01",
+    "search_index_name": "2023-12-29",
+    "search_algorithms": ["HNSW-NVM", "exhaustive"],
+    "search_k_value": 3
+}

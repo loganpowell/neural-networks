@@ -11,12 +11,18 @@ scikit-learn = "^1.4.1.post1"
 torch = "^2.2.1"
 torchvision = "^0.17.1"
 seaborn = "^0.13.2"
+openai = "^1.13.3"
+azure-keyvault-secrets = "^4.8.0"
+azure-identity = "^1.15.0"
+tiktoken = "^0.6.0"
+requests = "^2.31.0"
 
 [tool.poetry.group.dev.dependencies]
 numpy = "^1.26.4"
 matplotlib = "^3.8.3"
 pandas = "^2.2.1"
 ipykernel = "^6.29.3"
+python-dotenv = "^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]

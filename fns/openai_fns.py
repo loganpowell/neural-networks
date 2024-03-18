@@ -105,7 +105,7 @@ def messages_prompt(
         "stop": None,
     }
     response = requests.post(URL, headers=headers, json=body, timeout=60)
-    # print("messages_prompt response:", response.json())
+    # print("\nmessages_prompt response:\n", json.dumps(response.json(), indent=2))
 
     content = response.json()["choices"][0]["message"]["content"]
 
@@ -133,6 +133,39 @@ def summarize(text, max_tokens=default_token_sequence_length):
         "frequency_penalty": 1,
         "presence_penalty": 0,
         "max_tokens": round(max_tokens),
+        "stop": None,
+    }
+
+    response = requests.post(URL, headers=headers, json=body, timeout=60)
+    # print(response.json())
+
+    content = response.json()["choices"][0]["message"]["content"]
+
+    return content
+
+
+def rerank(search_results, query):
+    """
+    Takes a list of search results and reranks them based on the user's query
+    """
+    URL = f"https://{OPENAI_INSTANCE}.openai.azure.com/openai/deployments/{
+        LLM_DEPLOYMENT}/chat/completions?api-version={LLM_API_VERSION}"
+
+    headers = {"Content-Type": "application/json", "api-key": OPENAI_API_KEY}
+
+    body = {
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Rerank the following search results based on the user's query."
+            },
+            {"role": "user", "content": query},
+            {"role": "search_results", "content": search_results},
+        ],
+        "temperature": 0,
+        "frequency_penalty": 1,
+        "presence_penalty": 0,
+        "max_tokens": 1000,
         "stop": None,
     }
 

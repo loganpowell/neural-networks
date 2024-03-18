@@ -8,3 +8,11 @@ from .openai_fns import (
     get_embeddings,
     summarize
 )
+
+from .azure_fns import (
+    vector_search
+)
+
+from .intent import (
+    get_intent
+)

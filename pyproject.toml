@@ -6,26 +6,29 @@ authors = ["loganpowell <loganp@tepper.cmu.edu>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
-scikit-learn = "^1.4.1.post1"
-torch = "^2.2.1"
-torchvision = "^0.17.1"
-seaborn = "^0.13.2"
-openai = "^1.13.3"
 azure-keyvault-secrets = "^4.8.0"
 azure-identity = "^1.15.0"
-tiktoken = "^0.6.0"
-requests = "^2.31.0"
-markdownify = "^0.11.6"
-glom = "^23.5.0"
 beautifulsoup4 = "^4.12.3"
+datasets = "^2.18.0"
+glom = "^23.5.0"
+markdownify = "^0.11.6"
+openai = "^1.13.3"
+python = "^3.12"
+requests = "^2.31.0"
+scikit-learn = "^1.4.1.post1"
+seaborn = "^0.13.2"
+tiktoken = "^0.6.0"
+torch = "^2.2.1"
+torchvision = "^0.17.1"
+azure-search-documents = "^11.4.0"
 
 [tool.poetry.group.dev.dependencies]
-numpy = "^1.26.4"
-matplotlib = "^3.8.3"
-pandas = "^2.2.1"
 ipykernel = "^6.29.3"
+matplotlib = "^3.8.3"
+numpy = "^1.26.4"
+pandas = "^2.2.1"
 python-dotenv = "^1.0.1"
+ipywidgets = "^8.1.2"
 
 [build-system]
 requires = ["poetry-core"]

@@ -4,7 +4,7 @@ import functools
 from numpy import dot
 from numpy.linalg import norm
 from tools import api_mocker, web_search, page_scraper, pick, search
-from fns.openai_fns import get_embeddings, messages_prompt, summarize
+from .openai_fns import get_embeddings, messages_prompt, summarize
 
 
 action_vtx_api = {

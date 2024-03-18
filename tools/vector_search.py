@@ -92,7 +92,8 @@ def search(
     try:
         search_base_url = get_secret("primary-search-service-base-url")
         search_key = get_secret("primary-search-service-secondary-key")
-        url = f"{search_base_url}/indexes/{azure_index}/docs/search?api-version={azure_api_version}"
+        url = f"{
+            search_base_url}/indexes/{azure_index}/docs/search?api-version={azure_api_version}"
         response = requests.post(
             url,
             json=query,

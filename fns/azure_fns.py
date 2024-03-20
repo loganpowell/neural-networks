@@ -379,6 +379,90 @@ sc_profile = ScoringProfile(
 )
 
 
+# def vector_search(
+#    embeddings,
+#    index_name=search_index_name,
+#    api_version=search_api_version,
+#    product=None,
+#    tax_process=None,
+#    algorithm='HNSW-NVM',
+#    k=3
+# ):
+#    # if index name is not provided, use shared config (NEW)
+#    azure_index = index_name
+#    azure_api_version = api_version
+
+#    _year, _month, _day = api_version.split('-') if api_version else []
+#    year = int(_year)
+#    month = int(_month)
+
+#    collection = COLLECTIONS.get(product) if product else None
+
+#    _filter = None
+#    if collection and tax_process:
+#        _filter = f"{collection} and tax_process/any(p: p eq '{tax_process}')"
+#    elif collection:
+#        _filter = collection
+#    elif tax_process:
+#        _filter = f"tax_process/any(p: p eq '{tax_process}')"
+
+#    select = "id, content, metadata, title, tax_process, product, modified_time, heading, content_vector"
+
+#    if year >= 2023 and month >= 10:
+#        query = {
+#            "count": True,
+#            "vectorQueries": [{
+#                "k": k,
+#                "vector": embeddings,
+#                "fields": "content_vector",
+#                "kind": "vector",
+#                "exhaustive": "exhaustive" in algorithm,
+#            }],
+#            "select": select,
+#        }
+
+#        if _filter:
+#            query["vectorFilterMode"] = "postFilter"
+#            query["filter"] = _filter
+#    else:
+#        query = {
+#            "top": k,
+#            "vector": {
+#                "k": k,
+#                "value": embeddings,
+#                "fields": 'content_vector',
+#                "filter": _filter,
+#            },
+#            "select": select,
+#        }
+
+#    try:
+#        search_base_url = get_secret("primary-search-service-base-url")
+#        search_key = get_secret("primary-search-service-secondary-key")
+#        url = f"{
+#            search_base_url}/indexes/{azure_index}/docs/search?api-version={azure_api_version}"
+#        response = requests.post(
+#            url,
+#            json=query,
+#            headers={
+#                "api-key": search_key,
+#                'Content-Type': 'application/json'
+#            },
+#            timeout=20
+#        )
+#        result = response.json()
+#        # print("result:", result)
+#        if not result['value']:
+#            print("Problem with 'search' API call")
+
+#        return result
+#    except:
+#        print("Error during fetch to Azure")
+#        raise Exception(
+#            "Error in `search` function calling Azure Cognitive Search API"
+#        )
+
+
 def vector_search(
     embeddings,
     index_name=search_index_name,
@@ -388,6 +472,9 @@ def vector_search(
     algorithm='HNSW-NVM',
     k=3
 ):
+    """
+    Vector search using Azure Cognitive Search API, with pagination for k > 50
+    """
     # if index name is not provided, use shared config (NEW)
     azure_index = index_name
     azure_api_version = api_version
@@ -408,56 +495,75 @@ def vector_search(
 
     select = "id, content, metadata, title, tax_process, product, modified_time, heading, content_vector"
 
-    if year >= 2023 and month >= 10:
-        query = {
-            "count": True,
-            "vectorQueries": [{
-                "k": k,
-                "vector": embeddings,
-                "fields": "content_vector",
-                "kind": "vector",
-                "exhaustive": "exhaustive" in algorithm,
-            }],
-            "select": select,
-        }
+    # split the k into buckets of 50
+    # if k > 50, we need to paginate the search
+    # and merge the results
 
-        if _filter:
-            query["vectorFilterMode"] = "postFilter"
-            query["filter"] = _filter
-    else:
-        query = {
-            "top": k,
-            "vector": {
-                "k": k,
-                "value": embeddings,
-                "fields": 'content_vector',
-                "filter": _filter,
-            },
-            "select": select,
-        }
+    batches = [50 for _ in range(k // 50)]
+    if k % 50:
+        batches.append(k % 50)
 
-    try:
-        search_base_url = get_secret("primary-search-service-base-url")
-        search_key = get_secret("primary-search-service-secondary-key")
-        url = f"{
-            search_base_url}/indexes/{azure_index}/docs/search?api-version={azure_api_version}"
-        response = requests.post(
-            url,
-            json=query,
-            headers={
-                "api-key": search_key,
-                'Content-Type': 'application/json'
-            },
-            timeout=20
-        )
-        result = response.json()
-        # print("result:", result)
-        if not result['value']:
-            print("Problem with 'search' API call")
+    results = []
+    cursor = 0
 
-        return result
-    except:
-        print("Error during fetch to Azure")
-        raise Exception(
-            "Error in `search` function calling Azure Cognitive Search API"
-        )
+    for batch in batches:
+        print("batch:", batch)
+
+        if year >= 2023 and month >= 10:
+            query = {
+                "count": True,
+                "vectorQueries": [{
+                    "k": batch,
+                    "vector": embeddings,
+                    "fields": "content_vector",
+                    "kind": "vector",
+                    "exhaustive": "exhaustive" in algorithm,
+                }],
+                "select": select,
+            }
+
+            if _filter:
+                query["vectorFilterMode"] = "postFilter"
+                query["filter"] = _filter
+        else:
+            query = {
+                "top": batch,
+                "vector": {
+                    "k": batch,
+                    "value": embeddings,
+                    "fields": 'content_vector',
+                    "filter": _filter,
+                },
+                "select": select,
+            }
+
+        try:
+            search_base_url = get_secret("primary-search-service-base-url")
+            search_key = get_secret("primary-search-service-secondary-key")
+            skip = f"&skip={batches[cursor - 1]}" if cursor > 0 else ""
+            url = f"{
+                search_base_url}/indexes/{azure_index}/docs/search?api-version={azure_api_version}{skip}"
+            print("url:", url)
+            response = requests.post(
+                url,
+                json=query,
+                headers={
+                    "api-key": search_key,
+                    'Content-Type': 'application/json'
+                },
+                timeout=20
+            )
+            result = response.json()
+            # print("result:", result)
+            if not result['value']:
+                print("Problem with 'search' API call")
+
+            cursor += 1
+            results.extend(result["value"])
+        except:
+            print("Error during fetch to Azure")
+            raise Exception(
+                "Error in `search` function calling Azure Cognitive Search API"
+            )
+
+    return results

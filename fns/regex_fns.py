@@ -12,8 +12,10 @@ md_table_rx = re.compile(r"(([^\n]+?\|\n?)+(|$))")
 count_tables = re.compile(r"\n\n\|", re.MULTILINE)
 md_tokens_rx = re.compile(r"\\n|\n|#")
 
+
 def trim_hash(s):
     return re.sub(r"^#{1,6}\s", "", s)
+
 
 def has_table(md):
     """
@@ -21,7 +23,10 @@ def has_table(md):
     """
     return md_table_rx.search(md) is not None
 
+
 first_line_rx = re.compile(r"^\s{0,5}(.+?)\n", re.MULTILINE)
+
+
 def get_candidate_heading(md):
     """
     returns the first line in markdown
@@ -33,8 +38,11 @@ def get_candidate_heading(md):
         print("No Candidate Heading Found")
         return None
 
+
 # matches only the first heading (# or ##) in markdown
 first_heading_rx = re.compile(r"^(#+?)\s(.+?)\n", re.MULTILINE)
+
+
 def get_title(md):
     """
     returns the first heading in markdown
@@ -44,9 +52,11 @@ def get_title(md):
         return trim_hash(heading.group(2)).strip()
     else:
         print(f"🔥🔥🔥 heading: {heading}")
-        print(f"🔥🔥🔥 (`get_first_heading`) No Heading Found in:\n```md\n{md[:100]}..\n```")
+        print(
+            f"🔥🔥🔥 (`get_first_heading`) No Heading Found in:\n```md\n{md[:100]}..\n```")
         print(f'🔥🔥🔥 using `get_candidate_heading` instead...')
         return get_candidate_heading(md) or "No Heading Found"
+
 
 def grab_first_table_and_above(md):
     """
@@ -60,6 +70,132 @@ def grab_first_table_and_above(md):
         return first_table_and_above
     else:
         return None
+
+
+def get_md_links(md):
+    """
+    returns a list of markdown links in a string
+
+    example:
+    ```json
+    {
+        "Link One": "/csh?topicname=191623.html&pubname=PubOne",
+        "Link Two": "#showid/191623",
+        "Link Three": "https://community.vertexinc.com/csh?topicname=191623.html&pubname=PubThree"
+    }
+    ```
+    """
+    links = re.findall(r"\[.*?\]\(.*?\)", md)
+    # get the text and href from each link as a list of tuples
+    return {
+        re.search(r"\[(.*?)\]", link).group(1): re.search(r"\((.*?)\)", link).group(1)
+        for link in links
+    }
+
+
+def strip_md_links(md):
+    """
+    replaces markdown links with their text
+    """
+    links = re.findall(r"\[.*?\]\(.*?\)", md)
+    for link in links:
+        md = md.replace(link, re.search(r"\[(.*?)\]", link).group(1))
+
+    return md
+
+
+related_rx = re.compile(
+    r"(#\sRelated\s(?:Articles|Topics)(.*?)(?=\Z))", re.I | re.S)
+
+
+def generate_links(
+    links,
+    publication=None,
+    lang="enus"
+):
+    """
+    takes the output of get_md_links and compiles them into functioning links
+    input link formats:
+    - inter-publication links
+        - /csh?topicname=111111.html&pubname=SomePublication
+        - /csh?topicname=SomeTopic.html&pubname=SomePublication
+    - intra-publication links
+        - #showid/111111
+        - #showid/SomeTopic
+    - conventional links (vertex)
+        - https://www.vertexinc.com/vertex-community
+        - https://community.vertexinc.com/s/document-item?bundleId=OSeriesSupportPolicy&topicId=201379.html&_LANG=enus
+
+    example links payload:
+    ```json
+    {
+        "Link One": "/csh?topicname=191623.html&pubname=PubOne",
+        "Link Two": "#showid/191623",
+        "Link Three": "https://community.vertexinc.com/csh?topicname=191623.html&pubname=PubThree"
+    }
+    ```
+    example output payload:
+    ```json
+    [
+        { 
+            "text": "Link One",
+            "href": "https://community.vertexinc.com/s/document-item?bundleId=PubOne&topicId=191623.html&_LANG=enus",
+            "topic": "191623",
+            "publication": "PubOne"
+        },
+        { 
+            "text": "Link Two",
+            "href": "https://community.vertexinc.com/s/document-item?bundleId=<publication>&topicId=191623.html&_LANG=enus",
+            "topic": "191623",
+            "publication": <publication>
+        },
+        { 
+            "text": "Link Three",
+            "href": "https://community.vertexinc.com/s/document-item?bundleId=PubThree&topicId=191623.html&_LANG=enus",
+            "topic": "191623",
+            "publication": "PubThree"
+        }
+    ]
+    ```
+    """
+    # grab topic id/name from any of the above formats
+    # - can be topicname= | showid/ | topicId=
+    #   - at the end of a string or followed by a .html
+    topic_rx = re.compile(r"(topicname=|showid\/|topicId=)(.*?(?=(\.|$)))")
+    pub_rx = re.compile(r"(pubname=|bundleId=)(.*?(?=(\.|$|&)))")
+
+    results = []
+    for text, raw in links.items():
+        topic = topic_rx.search(raw)
+        pub = pub_rx.search(raw)
+        if not pub and publication:
+            pub = publication
+        else:
+            pub = pub.group(2)
+        if not topic:
+            print(f"🔥🔥🔥 topic not found for: {raw}")
+            topic = None
+        else:
+            topic = topic.group(2)
+        results.append({
+            "raw": raw,
+            "text": text,
+            "topic": topic if topic else None,  # TODO: use as trigger for link generation
+            "publication": pub,
+            "href": f"https://community.vertexinc.com/s/document-item?bundleId={pub}&topicId={topic}.html&_LANG={lang}" if topic else raw
+        })
+
+    return results
+
+
+def no_special_chars(md):
+    """
+    removes all special characters and newlines from a string
+    """
+    before_escaped = re.sub(r"\W+", " ", md)
+    # escape quotes (single and double) and backticks
+    after_escaped = re.sub(r"['\"`]", r"\\\g<0>", before_escaped)
+    return after_escaped
 
 
 #   d88~\  e88~~8e  888-~88e   d88~\

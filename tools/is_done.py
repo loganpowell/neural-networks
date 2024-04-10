@@ -1,9 +1,16 @@
 import json
-from utils import history as h
 from fns import messages_prompt
+
+
+def strip_history_meta(history):
+    """
+    removes metadata from history
+    """
+    return [{"role": h["role"], "content": h["content"]} for h in history]
 
 # > NOTE: The prompt should include what follow-up actions are available to
 # > determine if the user has what they need to complete their task.
+
 
 def prompt_evaluate(catalog):
     "evaluates the user's query and returns a one-word response."
@@ -30,7 +37,7 @@ def is_done(history, catalog):
     """
     Decides when the assistant has fulfilled its purpose
     """
-    stripped_history = h.strip_history_meta(history)
+    stripped_history = strip_history_meta(history)
     # find the first user message
     first_user_msg = next(
         (h for h in stripped_history if h["role"] == "user"),
@@ -40,12 +47,12 @@ def is_done(history, catalog):
     if not first_user_msg:
         print("Whooops! `user` message not found")
         return False
-    
+
     last_user_msg = next(
         (h for h in reversed(stripped_history) if h["role"] == "user"),
         None
     )
-    
+
     # find the last assistant message
     assistant_message = next(
         (h for h in reversed(stripped_history) if h["role"] == "assistant"),
@@ -56,7 +63,8 @@ def is_done(history, catalog):
         print("Whooops! `assistant` message not found")
         return False
 
-    descriptions = (["The user can " + action["description"] for action in catalog.values()])
+    descriptions = (["The user can " + action["description"]
+                    for action in catalog.values()])
     pertinent = [
         {
             "role": "system",
@@ -64,7 +72,8 @@ def is_done(history, catalog):
         },
         first_user_msg,
         assistant_message,
-        *([] if last_user_msg["content"] == first_user_msg["content"] else [last_user_msg]),
+        *([] if last_user_msg["content"] ==
+          first_user_msg["content"] else [last_user_msg]),
     ]
 
     try:

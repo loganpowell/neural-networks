@@ -185,12 +185,12 @@ def get_intent(message):
     """
     # print(f"Inferring intent for: {message}")
 
-    msg_emb = get_embeddings(message)["data"][0]["embedding"]
+    msg_emb = get_embeddings(message)
 
     nn = None
     nn_score = 0
     for a in action_embeddings():
-        embed = a["embed"]["data"][0]["embedding"]
+        embed = a["embed"]
         # print(f"Embed length: {len(embed)}\n embed: {embed}")
         score = dot(embed, msg_emb) / (norm(embed) * norm(msg_emb))
         if score > nn_score:

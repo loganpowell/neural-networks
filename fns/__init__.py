@@ -1,4 +1,8 @@
-
+from .intent import (
+    get_intent,
+    actions,
+    isolate_action_data
+)
 from .keyvault import get_secret
 from .regex_fns import (
     whitespace_regex
@@ -8,11 +12,8 @@ from .openai_fns import (
     get_embeddings,
     summarize
 )
-
 from .azure_fns import (
-    vector_search
-)
-
-from .intent import (
-    get_intent
+    vector_search,
+    search_kb,
+    get_embeddings
 )
